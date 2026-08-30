@@ -21,14 +21,15 @@ export async function getStudentGrades(studentId: string) {
         test:tests(id, title, subject, test_year, test_month)
       )
     `)
-    .eq('student_id', studentId);
+    .eq('student_id', studentId) as { data: { earned_points: number, question: { points: number, category: string, test: { id: string, title: string, subject: string, test_year: number, test_month: number } } | null }[] | null };
 
   // 3. Process results for dashboard
-  const tests = new Map();
+  const tests = new Map<string, any>();
   
   results?.forEach(row => {
-    const test = row.question?.test;
-    if (!test) return;
+    const question = row.question;
+    const test = question?.test;
+    if (!test || !question) return;
     
     const key = `${test.test_year}-${test.test_month}-${test.title}`;
     if (!tests.has(key)) {
@@ -39,18 +40,18 @@ export async function getStudentGrades(studentId: string) {
         date: `${test.test_year}.${test.test_month}`,
         score: 0,
         total: 0,
-        categories: {}
+        categories: {} as Record<string, { name: string, points: number, totalPoints: number }>
       });
     }
     
     const t = tests.get(key);
     t.score += row.earned_points || 0;
-    t.total += row.question?.points || 0;
+    t.total += question.points || 0;
     
-    const cat = row.question?.category || '기타';
+    const cat = question.category || '기타';
     if (!t.categories[cat]) t.categories[cat] = { name: cat, points: 0, totalPoints: 0 };
     t.categories[cat].points += row.earned_points || 0;
-    t.categories[cat].totalPoints += row.question?.points || 0;
+    t.categories[cat].totalPoints += question.points || 0;
   });
 
   const formattedTests = Array.from(tests.values()).map(t => ({

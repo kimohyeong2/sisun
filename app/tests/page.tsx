@@ -57,10 +57,10 @@ export default function TestsPage() {
       <div className="flex gap-2">
         {subjects.map(subject => (
           <Button 
-            key={subject} 
-            variant={filterSubject === subject ? 'default' : 'outline'} 
-            onClick={() => setFilterSubject(subject)}
-            className="rounded-full px-4 py-1.5 h-auto text-xs"
+          key={subject} 
+          variant={filterSubject === subject ? 'primary' : 'outline'} 
+          onClick={() => setFilterSubject(subject)}
+          className="rounded-full px-4 py-1.5 h-auto text-xs"
           >
             {subject}
           </Button>

@@ -124,7 +124,7 @@ export function GradingModal({
                   </span>
                   <span className="w-20 text-sm truncate">{student.name}</span>
                   <Input 
-                    ref={el => inputRefs.current[student.id] = el}
+                    ref={el => { if (el) inputRefs.current[student.id] = el; }}
                     placeholder="1 2 4 5" 
                     value={answers[student.id] || ''}
                     onChange={(e) => setAnswers({...answers, [student.id]: e.target.value})}

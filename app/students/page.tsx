@@ -175,7 +175,7 @@ export default function StudentsPage() {
                   <td className="px-6 py-4 text-notion-ink-secondary">{student.student_no}</td>
                   <td className="px-6 py-4 text-notion-ink-secondary">{student.school} / {student.grade}</td>
                   <td className="px-6 py-4">
-                    <Badge variant={student.enrollment_status === 'active' ? 'active' : 'inactive'} className="rounded-full">
+                    <Badge variant={student.enrollment_status === 'active' ? 'active' : 'inactive'}>
                       {student.enrollment_status === 'active' ? '🟢 재원 중' : '⚪ 미등원/휴원'}
                     </Badge>
                   </td>
