@@ -4,11 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { logout } from '@/actions/auth';
-import { Users, FileText, LogOut } from 'lucide-react';
+import { Users, FileText, CalendarRange, LogOut } from 'lucide-react';
 
 const MENU_ITEMS = [
-  { href: '/students', label: '학생 관리', icon: Users },
-  { href: '/tests', label: '시험지 관리', icon: FileText },
+  { href: '/students', label: '학생', icon: Users },
+  { href: '/tests', label: '시험지', icon: FileText },
+  { href: '/curriculum', label: '커리큘럼', icon: CalendarRange },
 ];
 
 interface TopNavigationProps {

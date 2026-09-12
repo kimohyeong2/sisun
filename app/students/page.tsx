@@ -100,7 +100,7 @@ export default function StudentsPage() {
       <PageHeader
         icon={<GraduationCap className="h-6 w-6" />}
         eyebrow="Student Management"
-        title="학생 관리"
+        title="학생"
         description="재원생 현황을 확인하고 학생 정보를 관리하세요."
         actions={<StudentForm onAdd={fetchData} />}
       />

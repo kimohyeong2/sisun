@@ -54,7 +54,7 @@ export default function TestsPage() {
       <PageHeader
         icon={<FileText className="h-6 w-6" />}
         eyebrow="Test Management"
-        title="시험지 관리"
+        title="시험지"
         description="시험지를 생성하고 문항·채점을 관리하세요."
         actions={
           <Button onClick={() => setIsOpen(true)}>
