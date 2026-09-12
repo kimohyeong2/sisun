@@ -49,7 +49,7 @@ export default function CurriculumPage() {
   };
 
   return (
-    <div className="p-8 space-y-8 print:p-0 print:space-y-0">
+    <div>
       <div className="no-print space-y-8">
         <PageHeader
           icon={<CalendarRange className="h-6 w-6" />}
