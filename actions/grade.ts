@@ -2,8 +2,10 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { requireTeacherId } from '@/utils/auth-guard';
 
 export async function gradeTest(formData: FormData) {
+  await requireTeacherId();
   const supabase = await createClient();
   
   const student_id = formData.get('student_id') as string;

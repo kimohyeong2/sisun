@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import bcrypt from 'bcryptjs';
 import { redirect } from 'next/navigation';
+import { createSessionToken } from '@/utils/session';
 
 export async function login(prevState: any, formData: FormData) {
   const id = formData.get('id') as string;
@@ -31,9 +32,10 @@ export async function login(prevState: any, formData: FormData) {
     return { error: '아이디 또는 비밀번호가 일치하지 않습니다.' };
   }
 
-  // 3. 세션 쿠키 설정
+  // 3. 세션 쿠키 설정 (평문 teacherId 대신 서명된 토큰을 저장해 위조를 방지)
+  const token = await createSessionToken(teacher.id);
   const { cookies } = await import('next/headers');
-  (await cookies()).set('session', teacher.id, {
+  (await cookies()).set('session', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

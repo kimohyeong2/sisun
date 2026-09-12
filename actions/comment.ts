@@ -2,8 +2,10 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { requireTeacherId } from '@/utils/auth-guard';
 
 export async function saveTeacherComment(studentId: string, comment: string) {
+  await requireTeacherId();
   const supabase = await createClient();
 
   const { error } = await supabase

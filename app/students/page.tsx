@@ -1,24 +1,30 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { StatCard } from '@/components/ui/StatCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { Search, User } from 'lucide-react';
+import { Search, User, Users, GraduationCap, School } from 'lucide-react';
 import {
   BarChart,
   Bar,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LabelList,
 } from 'recharts';
 import StudentForm from './StudentForm';
-import { deleteStudent } from './actions';
+import { deleteStudent, getStudentsForCharts, getStudentsPage } from './actions';
+import { CHART_COLORS, CHART_GRID, chartTooltipStyle, axisTickStyle } from '@/components/charts/chartTheme';
 
 export default function StudentsPage() {
   const [students, setStudents] = useState<any[]>([]);
@@ -29,32 +35,20 @@ export default function StudentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const PAGE_SIZE = 10;
-  const supabase = useMemo(() => createClient(), []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    
-    // Fetch all for charts
-    const { data: allData } = await supabase.from('students').select('*');
-    if (allData) setAllStudents(allData);
 
-    // Fetch paginated
-    let query = supabase
-      .from('students')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE - 1);
+    const [allData, { data, count }] = await Promise.all([
+      getStudentsForCharts(),
+      getStudentsPage(currentPage, search),
+    ]);
 
-    if (search) {
-      query = query.ilike('name', `%${search}%`);
-    }
-
-    const { data, count } = await query;
-    
-    if (data) setStudents(data);
-    if (count !== null) setTotalCount(count);
+    setAllStudents(allData);
+    setStudents(data);
+    setTotalCount(count);
     setLoading(false);
-  }, [supabase, currentPage, search]);
+  }, [currentPage, search]);
 
   useEffect(() => {
     fetchData();
@@ -81,7 +75,7 @@ export default function StudentsPage() {
         high++;
       }
     });
-    
+
     return [
       { name: '중학생', value: middle },
       { name: '고등학생', value: high },
@@ -99,62 +93,89 @@ export default function StudentsPage() {
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [allStudents]);
 
+  const activeCount = useMemo(() => allStudents.filter(s => s.enrollment_status === 'active').length, [allStudents]);
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-4xl font-bold text-notion-ink tracking-tight">🎓 학생 관리</h1>
+    <div className="space-y-8">
+      <PageHeader
+        icon={<GraduationCap className="h-6 w-6" />}
+        eyebrow="Student Management"
+        title="학생 관리"
+        description="재원생 현황을 확인하고 학생 정보를 관리하세요."
+        actions={<StudentForm onAdd={fetchData} />}
+      />
+
+      {/* Overview stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="전체 학생" value={allStudents.length} icon={<Users className="h-5 w-5" />} tone="primary" />
+        <StatCard label="재원 중" value={activeCount} icon={<User className="h-5 w-5" />} />
+        <StatCard label="중학생" value={statusData[0]?.value ?? 0} icon={<School className="h-5 w-5" />} />
+        <StatCard label="고등학생" value={statusData[1]?.value ?? 0} icon={<GraduationCap className="h-5 w-5" />} />
+      </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-notion-hairline shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">학생 현황</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={statusData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value" fill="#8884d8" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <h2 className="text-[15px] font-semibold text-notion-ink mb-1">학생 현황</h2>
+          <p className="text-xs text-notion-ink-muted mb-4">재원 상태 및 학교급별 분포</p>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={statusData} margin={{ top: 16, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+              <XAxis dataKey="name" tick={axisTickStyle} axisLine={{ stroke: CHART_GRID }} tickLine={false} />
+              <YAxis tick={axisTickStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={64}>
+                {statusData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                ))}
+                <LabelList dataKey="value" position="top" style={{ fill: '#31302e', fontSize: 12, fontWeight: 600 }} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-notion-hairline shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">학교별 재학생</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={schoolData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value" fill="#82ca9d" />
+        </Card>
+        <Card>
+          <h2 className="text-[15px] font-semibold text-notion-ink mb-1">학교별 재학생</h2>
+          <p className="text-xs text-notion-ink-muted mb-4">재원 중인 학생의 소속 학교 분포</p>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={schoolData} margin={{ top: 16, right: 8, left: -16, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
+              <XAxis dataKey="name" tick={axisTickStyle} axisLine={{ stroke: CHART_GRID }} tickLine={false} />
+              <YAxis tick={axisTickStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip {...chartTooltipStyle} />
+              <Bar dataKey="value" fill={CHART_COLORS[0]} radius={[6, 6, 0, 0]} maxBarSize={48} />
             </BarChart>
           </ResponsiveContainer>
+        </Card>
+      </div>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-notion-ink-faint" />
+          <Input
+            placeholder="이름 검색..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="pl-9"
+          />
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-notion-ink-faint" />
-            <Input 
-              placeholder="이름 검색..." 
-              value={search} 
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1); // Reset to page 1 on search
-              }} 
-              className="pl-8 rounded-[4px] border-notion-hairline focus:ring-1 focus:ring-notion-blue" 
-            />
-          </div>
-          <StudentForm onAdd={fetchData} />
-      </div>
-
-      <div className="bg-notion-canvas border border-notion-hairline rounded-lg overflow-hidden shadow-sm">
+      <div className="bg-notion-canvas border border-notion-hairline rounded-notion-lg overflow-hidden shadow-[var(--shadow-notion-soft)]">
         {loading ? (
-          <div className="p-10 text-center text-notion-ink-muted">데이터 불러오는 중...</div>
+          <div className="p-16 text-center text-sm text-notion-ink-muted">데이터 불러오는 중...</div>
         ) : students.length === 0 ? (
-          <div className="p-10 text-center text-notion-ink-muted">등록된 학생이 없습니다.</div>
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="등록된 학생이 없습니다"
+            description="상단의 '학생 추가' 버튼으로 첫 학생을 등록해 보세요."
+          />
         ) : (
-          <table className="w-full text-sm text-left">
-            <thead className="bg-notion-canvas-soft text-notion-ink-muted uppercase font-semibold text-[12px] tracking-wider border-b border-notion-hairline">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm text-left">
+            <thead className="bg-notion-canvas-soft text-notion-ink-muted uppercase font-semibold text-[11px] tracking-wider border-b border-notion-hairline">
               <tr>
                 <th className="px-6 py-3">이름</th>
                 <th className="px-6 py-3">학번</th>
@@ -165,64 +186,56 @@ export default function StudentsPage() {
             </thead>
             <tbody className="divide-y divide-notion-hairline">
               {students.map((student) => (
-                <tr key={student.id} className="hover:bg-notion-canvas-soft/50 transition-colors group">
-                  <td className="px-6 py-4 font-medium text-notion-ink flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-notion-canvas-soft flex items-center justify-center text-notion-ink-muted">
-                        <User className="h-4 w-4" />
+                <tr key={student.id} className="hover:bg-notion-canvas-soft/60 transition-colors group">
+                  <td className="px-6 py-3.5 font-medium text-notion-ink">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-notion-blue/10 flex items-center justify-center text-notion-blue text-xs font-semibold shrink-0">
+                        {student.name?.slice(0, 1) ?? <User className="h-4 w-4" />}
+                      </div>
+                      {student.name}
                     </div>
-                    {student.name}
                   </td>
-                  <td className="px-6 py-4 text-notion-ink-secondary">{student.student_no}</td>
-                  <td className="px-6 py-4 text-notion-ink-secondary">{student.school} / {student.grade}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3.5 text-notion-ink-secondary">{student.student_no}</td>
+                  <td className="px-6 py-3.5 text-notion-ink-secondary">{student.school} / {student.grade}</td>
+                  <td className="px-6 py-3.5">
                     <Badge variant={student.enrollment_status === 'active' ? 'active' : 'inactive'}>
-                      {student.enrollment_status === 'active' ? '🟢 재원 중' : '⚪ 미등원/휴원'}
+                      {student.enrollment_status === 'active' ? '재원 중' : '미등원/휴원'}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-right space-x-1">
-                    <Link href={`/students/${student.id}/grades`}>
-                      <Button variant="outline" className="h-9 px-3 rounded-[8px] hover:bg-notion-canvas-soft border-notion-hairline text-xs font-medium text-notion-ink">성적</Button>
-                    </Link>
-                    <StudentForm onAdd={fetchData} initialData={student} />
-                    <Button 
-                      variant="outline" 
-                      className="h-9 px-3 rounded-[8px] hover:bg-red-50 border-notion-hairline text-xs font-medium text-notion-ink hover:text-red-500" 
-                      onClick={() => setDeleteId(student.id)}
-                    >
-                      삭제
-                    </Button>
+                  <td className="px-6 py-3.5 text-right">
+                    <div className="flex justify-end gap-1.5">
+                      <Link href={`/students/${student.id}/grades`}>
+                        <Button variant="outline" size="sm">성적</Button>
+                      </Link>
+                      <StudentForm onAdd={fetchData} initialData={student} />
+                      <Button variant="danger" size="sm" onClick={() => setDeleteId(student.id)}>
+                        삭제
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
-      
-      {/* Pagination Controls */}
+
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <Button 
-            variant="outline"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => p - 1)}
-          >
+        <div className="flex justify-center items-center gap-3">
+          <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
             이전
           </Button>
-          <span className="text-sm">
+          <span className="text-sm text-notion-ink-muted tabular-nums">
             {currentPage} / {totalPages}
           </span>
-          <Button
-            variant="outline"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => p + 1)}
-          >
+          <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
             다음
           </Button>
         </div>
       )}
-      <ConfirmDialog 
-        isOpen={!!deleteId} 
+      <ConfirmDialog
+        isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={async () => {
           if (!deleteId) return;

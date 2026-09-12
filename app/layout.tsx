@@ -30,11 +30,10 @@ export default async function RootLayout({
         <div className="flex flex-col min-h-screen">
           <TopNavigation userId={userId} />
 
-          {/* 메인 콘텐츠 영역: 이제 페이지 레벨에서 자연스럽게 스크롤됩니다. */}
           <main className="flex-1 p-6 md:p-10 max-w-7xl w-full mx-auto">
             {children}
           </main>
-          
+
           <Footer />
         </div>
       </body>

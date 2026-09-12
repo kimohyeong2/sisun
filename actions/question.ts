@@ -2,8 +2,26 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { requireTeacherId } from '@/utils/auth-guard';
+
+export async function getQuestionsForTest(test_id: string) {
+  await requireTeacherId();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('test_id', test_id)
+    .order('question_no');
+
+  if (error) {
+    console.error('Error fetching questions:', error);
+    return [];
+  }
+  return data || [];
+}
 
 export async function upsertQuestions(test_id: string, questions: any[]) {
+  await requireTeacherId();
   console.log('Server Action: upsertQuestions called', { test_id, questionsCount: questions.length });
   // FIX: Await the async createClient() function
   const supabase = await createClient();

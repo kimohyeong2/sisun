@@ -1,8 +1,10 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { requireTeacherId } from '@/utils/auth-guard';
 
 export async function getStudentPercentile(testId: string, targetStudentId: string) {
+  await requireTeacherId();
   const supabase = await createClient();
 
   // 1. 해당 시험(testId)에 대한 모든 학생의 획득 점수 조회

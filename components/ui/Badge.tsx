@@ -1,8 +1,31 @@
-export function Badge({ children, variant }: { children: React.ReactNode, variant: 'active' | 'inactive' | 'primary' }) {
-  const styles = {
-    active: 'bg-[#e7f3ef] text-[#1aae39]',
-    inactive: 'bg-[#f1f1ef] text-[#615d59]',
-    primary: 'bg-[#ebf5fe] text-[#0075de]'
-  };
-  return <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase ${styles[variant]}`}>{children}</span>;
+import { cn } from '@/utils/cn';
+
+type Variant = 'active' | 'inactive' | 'primary';
+
+const styles: Record<Variant, string> = {
+  active: 'bg-[#e7f3ef] text-[#1aae39]',
+  inactive: 'bg-[#f1f1ef] text-[#615d59]',
+  primary: 'bg-[#f5e9e9] text-notion-blue',
+};
+
+export function Badge({
+  children,
+  variant,
+  className = '',
+}: {
+  children: React.ReactNode;
+  variant: Variant;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide uppercase',
+        styles[variant],
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
 }
